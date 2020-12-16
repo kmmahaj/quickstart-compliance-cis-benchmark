@@ -13,7 +13,7 @@ Parameters:
     Type: String
     Default:  admin@example.com
 
- DeliveryChannelExists:
+  DeliveryChannelExists:
     Description: >-
       Choose 'true' if Delivery Channel is already provisioned
     Type: String
@@ -119,6 +119,7 @@ Resources:
   
 # [PCI.Config.1] Enable AWS Config 
   ConfigurationRecorder:
+    Condition: CreateDeliveryChannel
     Type: 'AWS::Config::ConfigurationRecorder'
     Properties:
       RoleARN:
@@ -138,10 +139,12 @@ Resources:
       S3BucketName: !Ref 'S3BucketForAwsConfig'
 
   S3BucketForAwsConfig:
+    Condition: CreateDeliveryChannel
     Type: 'AWS::S3::Bucket'
     Properties: {}
 
   IamRoleForAwsConfig:
+    Condition: CreateDeliveryChannel
     Type: 'AWS::IAM::Role'
     Properties:
       ManagedPolicyArns:
@@ -851,11 +854,11 @@ Resources:
         - 
           Arn: 
             Fn::GetAtt: 
-              - " VPCDefaultGroupsRemediationLambda"
+              - "VPCDefaultGroupsRemediationLambda"
               - "Arn"
           Id: "PCIEC22"
    
-   VPCDefaultGroupsActionTarget:
+  VPCDefaultGroupsActionTarget:
     Type: Custom::ActionTarget
     Version: 1.0
     Properties:
@@ -864,27 +867,27 @@ Resources:
       Description: PCI.EC2.2 Event from Security Hub
       Id: PCIEC22
 
-   VPCDefaultGroupsLambdaPermission: 
+  VPCDefaultGroupsLambdaPermission: 
     Type: AWS::Lambda::Permission
     Properties: 
       FunctionName: 
-        Ref: " VPCDefaultGroupsRemediationLambda"
+        Ref: "VPCDefaultGroupsRemediationLambda"
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
       SourceArn: 
         Fn::GetAtt: 
-          - " VPCDefaultSecurityGroupsRule"
+          - "VPCDefaultSecurityGroupsRule"
           - "Arn"
 
-   VPCDefaultGroupsRemediationLambda:
+  VPCDefaultGroupsRemediationLambda:
     Type: AWS::Lambda::Function
-    DependsOn:  VPCDefaultGroupsRemediationLambdaRole
+    DependsOn: VPCDefaultGroupsRemediationLambdaRole
     Properties:
-      FunctionName:  VPCDefaultGroupsRemediationLambda
+      FunctionName: VPCDefaultGroupsRemediationLambda
       Description: PCI.EC2.2 Remediation using AWS SSM Document
       Handler: index.lambda_handler
       MemorySize: 256
-      Role: !GetAtt   VPCDefaultGroupsRemediationLambdaRole.Arn
+      Role: !GetAtt VPCDefaultGroupsRemediationLambdaRole.Arn
       Runtime: python3.7
       Timeout: 60
       Code:
@@ -912,11 +915,11 @@ Resources:
                   print("SSM automation execution error")
                   raise
 
-   VPCDefaultGroupsRemediationLambdaRole:
+  VPCDefaultGroupsRemediationLambdaRole:
     Type: AWS::IAM::Role
     Properties:
       Policies:
-      - PolicyName:  VPCDefaultGroupsRemediationLambdaPolicy
+      - PolicyName: VPCDefaultGroupsRemediationLambdaPolicy
         PolicyDocument:
           Version: 2012-10-17
           Statement:

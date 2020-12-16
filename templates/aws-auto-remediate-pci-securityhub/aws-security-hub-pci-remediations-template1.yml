@@ -103,21 +103,36 @@ Outputs:
 
 Parameters:
 
-  DeliveryChannelExists:
-    Description: >-
-      Choose 'true' if Delivery Channel is already provisioned
+  QSS3BucketName:
+    AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase letters, uppercase
+      letters, and hyphens (-). It cannot start or end with a hyphen (-).
+    Default: aws-securityhub-pci-quickstart
+    Description: S3 bucket name for the Quick Start assets. Quick Start bucket name can
+      include numbers, lowercase letters, uppercase letters, and hyphens (-). It
+      cannot start or end with a hyphen (-).
     Type: String
-    Default: 'false'
-    AllowedValues: ['false', 'true']
+  QSS3BucketRegion:
+    Default: 'us-east-1'
+    Description: The AWS Region where the Quick Start S3 bucket (QSS3BucketName) is hosted. When using your own bucket, you must specify this value.
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: '^([0-9a-zA-Z-.]+/)*$'
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters, uppercase
+      letters, hyphens (-), dots (.) and forward slash (/). The prefix should
+      end with a forward slash (/).
+    Default: remediations/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix can
+      include numbers, lowercase letters, uppercase letters, hyphens (-), dots
+      (.) and forward slash (/) and it should end with a forward slash (/).
+    Type: String
+
 
 Conditions:
-  CreateDeliveryChannel: !Equals [ !Ref DeliveryChannelExists, 'false' ] 
-
-Mappings:
-  SourceCode:
-    General:
-      S3Bucket: pci
-      KeyPrefix: aws-security-hub-pci-remediations/template1
+  
+  UsingDefaultBucket: !Equals
+    - !Ref QSS3BucketName
+    - 'aws-securityhub-pci-quickstart'
 
 Resources:
 
@@ -255,26 +270,13 @@ Resources:
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
-
-  # Secure VPC for PCI.Lambda.2 and PCI.ES.1
-  # https://pci-securityhub-quickstart.s3.amazonaws.com/aws-security-hub-pci-remediations/template1/aws-securevpcsetup.json
+#SecureVPCStack
   SecureVPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
-        Fn::Join:
-          - ""
-          - - https://
-            - Fn::FindInMap:
-                - SourceCode
-                - General
-                - S3Bucket
-            - -securityhub-quickstart.s3.amazonaws.com/
-            - Fn::FindInMap:
-                - SourceCode
-                - General
-                - KeyPrefix
-            - /aws-securevpcsetup.template
+      TemplateURL: !Sub
+        - "https://${S3Bucket}.s3.amazonaws.com/${QSS3KeyPrefix}/aws-securevpcsetup.template"
+        - S3Bucket: !If [UsingDefaultBucket, !Sub 'aws-securityhub-pci-quickstart', !Ref QSS3BucketName]
 
 #CloudTrail CW Log Group
   CloudTrailLogGroup: 
